@@ -29,9 +29,21 @@ const pageDescription = 'Jump to a randomly selected article in the Taopedia Bit
         const response = await fetch('/search-data.json');
         const entries = response.ok ? await response.json() : [];
         if (Array.isArray(entries) && entries.length > 0) {
-          const choice = entries[Math.floor(Math.random() * entries.length)];
+          // Exclude the article the reader is already on so Random never
+          // "redirects" to the same page, which location.replace would not
+          // visibly navigate to and leaves the status stuck mid-sentence.
+          const currentPath = window.location.pathname;
+          const candidates = entries.filter((entry) => entry.url !== currentPath);
+          const pool = candidates.length > 0 ? candidates : entries;
+          const choice = pool[Math.floor(Math.random() * pool.length)];
           if (choice && typeof choice.url === 'string') {
-            window.location.replace(choice.url);
+            if (choice.url !== currentPath) {
+              window.location.replace(choice.url);
+              return;
+            }
+            if (status) {
+              status.textContent = 'This is the only article available.';
+            }
             return;
           }
         }
